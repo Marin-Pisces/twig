@@ -1,3 +1,5 @@
+from dataclasses import dataclass, field
+
 @dataclass
 class Node:
     node_id:     int = 0
@@ -21,11 +23,13 @@ class Node:
 class Edge:
     edge_id: int = 0
     label  : str = ""
-    source: Node = field(repr=False)
-    target: Node = field(repr=False)
+    source: "Node | None" = field(default=None, repr=False)
+    target: "Node | None" = field(default=None, repr=False)
 
     def __repr__(self):
-        return (f"Edge(id={self.edge_id}, label='{self.label}', source={self.source.node_id}, target={self.target.node_id})")
+        source_id = self.source.node_id if self.source else "None"
+        target_id = self.target.node_id if self.target else "None"
+        return (f"Edge(id={self.edge_id}, label='{self.label}', source={self.source_id}, target={self.target_id})")
 
 @dataclass
 class Variable:
@@ -38,7 +42,7 @@ class Variable:
 
 @dataclass
 class RawGraph:
-    nodes: Dict[int, Node] = field(default_factory=dict, repr=False)
+    nodes: dict[int, Node ] = field(default_factory=dict, repr=False)
     edges: list[Edge] = field(default_factory=list, repr=False)
     variables: list[Variable] = field(default_factory=list, repr=False)
     drawing_order: list[int]  = field(default_factory=list)
@@ -50,7 +54,7 @@ class RawGraph:
 @dataclass
 class Binding:
     display_label: str=""
-    nodes: Dict[int, Node] = field(default_factory=dict, repr=False)
+    nodes: dict[int, Node] = field(default_factory=dict, repr=False)
     edges: list[Edge] = field(default_factory=list, repr=False)
     variables: list[Variable]    = field(default_factory=list, repr=False)
     abstracted_nodes: list[Node] = field(default_factory=list, repr=False)
