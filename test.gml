@@ -8,7 +8,7 @@ graph [
   node [ id 3 label "Branch_B" ]
   node [ id 4 label "Branch_C" ]
 
-  node [ id 5 label "Leaf_A1" ]
+  node [ id 5 label "Leaf_ A1" ]
   node [ id 6 label "Leaf_A2" ]
   node [ id 7 label "Leaf_B1" ]
   node [ id 8 label "Leaf_C1" ]
@@ -27,5 +27,12 @@ graph [
 
   edge [ id 17 source 4 target 8 label "C-L1" ]
   edge [ id 18 source 4 target 9 label "C-L2" ]
-  edge [ id 19 source 4 target 10 label "C-L3" ]
+  edge [ id 19 source 4 target 11 label "C-L3" ]
+  hyper_edge
+  [
+    node_id 11
+    edge_id [20,21]
+    label "V"
+    target [4,10]
+  ]
 ]
