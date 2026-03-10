@@ -175,6 +175,6 @@ def process_variable(node_dict, pending_variables):
         variable.variable_node_id = pending.variable_node_id
         for abstracted_node in pending.abstracted_nodes:
             nodes.append(node_dict.get(int(abstracted_node)))
-        variable.abstracted_nodes.extend(nodes))
+        variable.abstracted_nodes.extend(nodes)
         variables.append(deepcopy(variable))
     return variables
