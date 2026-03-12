@@ -10,7 +10,8 @@ def load(gml_file_name):
     gml_file_path = os.path.join(os.path.dirname(__file__), gml_file_name)
     gml_file      = open(gml_file_path,'r',encoding="utf_8")
     print('open gml file name :',gml_file_name)
-    parse_attributes(gml_file)
+    graph = parse_attributes(gml_file)
+    return graph
 
 def dump():
     print("dump")
@@ -19,6 +20,8 @@ def parse_attributes(gml_file):
     data_types = {'node', 'edge', 'hyper_edge'}
     is_in_block = False
     element_list = []
+
+    graph = models.RawGraph()
 
     nodes = []
     edges = []
@@ -59,6 +62,13 @@ def parse_attributes(gml_file):
     node_dict = {n.node_id: n for n in nodes}
     edges = process_edge(node_dict, pending_edges)
     variables = process_variable(node_dict, pending_variables)
+
+    graph.nodes = node_dict
+    graph.edges = edges
+    graph.variables = variables
+    graph.bind_count = len(variables)
+
+    return graph
 
 def process_node(element_str):
     node = models.Node()

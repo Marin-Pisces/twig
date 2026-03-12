@@ -17,7 +17,7 @@ class Node:
         parent_ids = [p.node_id for p in self.parent_nodes]
         child_ids  = [c.node_id for c in self.child_nodes]
 
-        return (f"Node(id={self.node_id}, label='{self.label}', parents={parent_ids}, children={child_ids}, node position=({self.x:.2f},{self.y:.2f}), is variable={self.is_variable})")
+        return (f"Node(id={self.node_id}, label='{self.label}', parents={parent_ids}, children={child_ids}, node position=({self.x:.2f},{self.y:.2f}), is variable={self.is_variable})\n")
 
 @dataclass
 class Edge:
@@ -42,7 +42,17 @@ class Variable:
 
 @dataclass
 class RawGraph:
-    nodes: dict[int, Node ] = field(default_factory=dict, repr=False)
+    nodes: dict[int, Node] = field(default_factory=dict, repr=False)
+    edges: list[Edge] = field(default_factory=list, repr=False)
+    variables: list[Variable] = field(default_factory=list, repr=False)
+    bind_count: int = 0
+
+    def __repr__(self):
+        return (f"RawGraph(nodes count={len(self.nodes)}, edges count={len(self.edges)}, variables count={len(self.variables)}, binds={self.bind_count})")
+
+@dataclass
+class Graph:
+    nodes: dict[int, Node] = field(default_factory=dict, repr=False)
     edges: list[Edge] = field(default_factory=list, repr=False)
     variables: list[Variable] = field(default_factory=list, repr=False)
     drawing_order: list[int]  = field(default_factory=list)
