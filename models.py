@@ -29,7 +29,7 @@ class Edge:
     def __repr__(self):
         source_id = self.source.node_id if self.source else "None"
         target_id = self.target.node_id if self.target else "None"
-        return (f"Edge(id={self.edge_id}, label='{self.label}', source={source_id}, target={target_id})")
+        return (f"Edge(id={self.edge_id}, label='{self.label}', source={source_id}, target={target_id})\n")
 
 @dataclass
 class Variable:
@@ -55,7 +55,7 @@ class Graph:
     nodes: dict[int, Node] = field(default_factory=dict, repr=False)
     edges: list[Edge] = field(default_factory=list, repr=False)
     variables: list[Variable] = field(default_factory=list, repr=False)
-    drawing_order: list[int]  = field(default_factory=list)
+    drawing_order: dict[list[int]] = field(default_factory=list)
     bind_count: int = 0
 
     def __repr__(self):
@@ -68,7 +68,7 @@ class Binding:
     edges: list[Edge] = field(default_factory=list, repr=False)
     variables: list[Variable]    = field(default_factory=list, repr=False)
     abstracted_nodes: list[Node] = field(default_factory=list, repr=False)
-    drawing_order: list[int]     = field(default_factory=list)
+    drawing_order: dict[list[int]] = field(default_factory=list)
     bind_count: int = 0
 
     def __repr__(self):
