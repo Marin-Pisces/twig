@@ -142,6 +142,7 @@ def parse_hyper_edge(element_str):
             match element_name:
                 case 'node_id':
                     node.node_id = int(item)
+                    node.is_variable = True
                     pending_variable.variable_node_id = int(item)
                     pending_edge_source = int(item)
                 case 'edge_id':

@@ -7,8 +7,8 @@ def compute_layout(graph, root_id = 0):
     else:
         root = next(iter(graph.nodes.values()))
     assign_levels(graph, root)
-    graph.drawing_order = generate_drawing_order(graph, root)
-    print(graph.drawing_order)
+    graph.drawing_order, most_level_nodes = generate_drawing_order(graph, root)
+    calculate_positions(graph, most_level_nodes)
 
 def assign_levels(graph, root):
     source_id_list = [e.source.node_id for e in graph.edges]
@@ -62,6 +62,7 @@ def assign_levels(graph, root):
 
 def generate_drawing_order(graph, root):
     top_down_order = []
+    most_level_nodes = 0
     target_nodes = [root]
     child_nodes = []
     current_level_nodes = [root.node_id]
@@ -79,7 +80,42 @@ def generate_drawing_order(graph, root):
             top_down_order.append(deepcopy(child_node_ids))
             current_level_nodes = deepcopy(child_node_ids)
             child_nodes = []
-    return top_down_order
+            if len(child_node_ids) > most_level_nodes:
+                most_level_nodes = len(child_node_ids)
+    return top_down_order, most_level_nodes
+
+def calculate_positions(graph, most_level_nodes):
+    node_w = 100
+    node_h = 100
+
+    root_node = True
+    w = most_level_nodes * node_w
+    h = 0
+    for level in graph.drawing_order:
+        for node_id in level:
+            node = graph.nodes.get(node_id)
+            if root_node:
+                root_node = False
+                node.x = w/len(level)
+                node.y = h
+                node.width = w
+                node.height = h
+                node.half_width = w/len(level)
+            if node.child_nodes:
+                parent_x = node.x
+                parent_w = node.width
+                parent_h = node.height
+                parent_hw = node.half_width
+                x = parent_x - parent_hw
+                w = parent_w/len(node.child_nodes)
+                h = parent_h + node_h
+                hw = w/2
+                for i, child in enumerate(node.child_nodes):
+                    child.x = x + hw + (w * i)
+                    child.y = h
+                    child.width  = w
+                    child.height = h
+                    child.half_width = hw
 
 def resolve_node(target_ids, node_dict):
     node_list = []
