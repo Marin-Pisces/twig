@@ -27,12 +27,11 @@ graph [
 
   edge [ id 17 source 4 target 8 label "C-L1" ]
   edge [ id 18 source 4 target 9 label "C-L2" ]
-  edge [ id 19 source 4 target 11 label "C-L3" ]
   hyper_edge
   [
     node_id 11
     edge_id [20,21]
     label "V"
-    target [4,10]
+    target [3,10]
   ]
 ]
