@@ -1,0 +1,14 @@
+site_name: Twig
+theme:
+  name: readthedocs
+  palette:
+    primary: indigo
+    accent: indigo
+  features:
+    - navigation.tabs
+    - content.code.copy
+
+  nav:
+    - Home: index.md
+    - Logic: logic.md
+    - Usage: usage.md
