@@ -96,23 +96,28 @@ def calculate_positions(graph, most_level_nodes):
             node = graph.nodes.get(node_id)
             if root_node:
                 root_node = False
-                node.x = w/len(level)
+                node.x = w/(len(level) + 1)
                 node.y = h
                 node.width = w
                 node.height = h
-                node.half_width = w/len(level)
+                node.half_width = w/(len(level) + 1)
             if node.child_nodes:
                 parent_x = node.x
                 parent_w = node.width
                 parent_h = node.height
                 parent_hw = node.half_width
                 x = parent_x - parent_hw
+                ny = parent_h - node_h
+                vy = parent_h - (node_h/2)
                 w = parent_w/len(node.child_nodes)
-                h = parent_h + node_h
+                h = parent_h - node_h
                 hw = w/2
                 for i, child in enumerate(node.child_nodes):
                     child.x = x + hw + (w * i)
-                    child.y = h
+                    if not child.is_variable:
+                        child.y = ny
+                    else:
+                        child.y = vy
                     child.width  = w
                     child.height = h
                     child.half_width = hw

@@ -41,16 +41,6 @@ class Variable:
         return (f"Variable(id={self.variable_node_id}, abstracteds={abstracted_ids})")
 
 @dataclass
-class RawGraph:
-    nodes: dict[int, Node] = field(default_factory=dict, repr=False)
-    edges: list[Edge] = field(default_factory=list, repr=False)
-    variables: list[Variable] = field(default_factory=list, repr=False)
-    bind_count: int = 0
-
-    def __repr__(self):
-        return (f"RawGraph(nodes count={len(self.nodes)}, edges count={len(self.edges)}, variables count={len(self.variables)}, binds={self.bind_count})")
-
-@dataclass
 class Graph:
     nodes: dict[int, Node] = field(default_factory=dict, repr=False)
     edges: list[Edge] = field(default_factory=list, repr=False)
@@ -91,3 +81,14 @@ class PendingVariable:
 
     def __repr__(self):
         return (f"Variable(id={self.variable_node_id}, abstracteds={self.abstracted_nodes})")
+
+@dataclass
+class NodeStyle:
+    size:   int = 0
+    color:  str = ''
+    marker: str = ''
+    alpha: float = 0.0
+    edgecolor: str = ''
+
+    def __repr__(self):
+        return (f"NodeStyle(size={self.size}, color='{self.color}', marker='{self.marker}', alpha={self.alpha}, edgecolor='{self.edgecolor}')")
