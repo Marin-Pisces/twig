@@ -12,17 +12,32 @@ def compute_layout(graph, root_id = 0):
     calculate_positions(graph, most_level_nodes)
 
 def build_hyper_edges(graph, bind_nodes, bind_label = 'bind'):
-    root = graph.nodes.get(graph.drawing_order[0][0])
     bind_graph = models.Graph()
-    bind_graph = deepcopy(graph)
+    bind_graph.nodes = graph.nodes.copy()
+    bind_graph.edges = graph.edges[:]
+    bind_graph.variables = graph.variables[:]
+    bind_graph.drawing_order = graph.drawing_order[:]
+    bind_graph.bind_count = graph.bind_count
+
+    for nid in bind_nodes:
+        if nid in bind_graph.nodes:
+            original = bind_graph.nodes[nid]
+            cloned = models.Node()
+            cloned.node_id = original.node_id
+            cloned.x, cloned.y = original.x, original.y
+            cloned.parent_nodes = original.parent_nodes[:]
+            cloned.child_nodes = original.child_nodes[:]
+            bind_graph.nodes[nid] = cloned
     bind_graph = sync_variable_counts(bind_graph, bind_nodes, bind_label)
+    root_id = graph.drawing_order[0][0]
+    root = bind_graph.nodes.get(root_id)
     bind_graph.drawing_order, most_level_nodes = generate_drawing_order(bind_graph, root)
     return bind_graph
 
 def sync_variable_counts(graph, bind_nodes, bind_label):
     top_node, bottom_nodes = find_topmost_node(graph, bind_nodes)
     abstracted_nodes = find_connected_nodes(graph, top_node, bottom_nodes)
-    bind_graph = test(graph, bind_nodes, bind_label, abstracted_nodes, top_node, bottom_nodes)
+    bind_graph = bind_as_variable(graph, bind_nodes, bind_label, abstracted_nodes, top_node, bottom_nodes)
     return bind_graph
 
 def assign_levels(graph, root):
@@ -137,7 +152,7 @@ def find_topmost_node(graph, bind_node_ids):
                 targets.discard(node_id)
                 bottom_list = sorted(targets, key=order.index)
                 return node_id, bottom_list
-    return None
+    return None, None
 
 def find_connected_nodes(graph, top_node, bottom_nodes):
     abstracted_nodes = set()
@@ -153,81 +168,64 @@ def find_connected_nodes(graph, top_node, bottom_nodes):
             parent_node = parent_node.parent_nodes[0]
     return abstracted_nodes
 
-def test(graph, bind_nodes, bind_label, abstracted_nodes, top_node_id, bottom_node_ids):
-    min_x = top_node.x
-    max_x = top_node.x
-    min_y = top_node.y
-    max_y = top_node.y
-    bottom_nodes = []
-    for i, node_id in enumerate(bottom_node_ids):
-        bottom_node = graph.nodes.get(node_id)
-        bottom_nodes.append(bottom_node)
-        if i == 0:
-            min_x = bottom_node.x
-        if max_x < bottom_node.x:
-            max_x = bottom_node.x
-        else:
-            min_x = bottom_node.x
-        if min_y > bottom_node.y:
-            min_y = bottom_node.y
+def bind_as_variable(graph, bind_nodes, bind_label, abstracted_nodes, top_node_id, bottom_node_ids):
+    top_node = graph.nodes.get(top_node_id)
+    bottom_nodes = [graph.nodes.get(nid) for nid in bottom_node_ids]
+    target_nodes = [top_node] + bottom_nodes
+
+    b_x_coords = [n.x for n in bottom_nodes]
+
+    min_x, max_x = min(b_x_coords), max(b_x_coords)
     width = max_x - min_x
-    half_width = width/2
+    half_width = width / 2
+
+    bind_node_x = min_x + half_width
+
+    min_y = bottom_nodes[0].y
+    max_y = top_node.y
     height = min_y - max_y
-    bind_node_id = max(graph.nodes, key=int, default=0) + 1
+
+    bind_node_y = max_y + (height / 2)
+
+    bind_node_id = max(graph.nodes.keys(), key=int, default=0) + 1
+
     bind_node = models.Node()
     bind_node.node_id = bind_node_id
     bind_node.label = bind_label
-    bind_node.parent_nodes = [top_node]
-    bind_node.child_nodes = bottom_nodes
-    bind_node.x = min_x + half_width
-    bind_node.y = max_y + height/2
-    bind_node.width = width
-    bind_node.height = height
-    bind_node.half_width = half_width
     bind_node.is_variable = True
 
+    bind_node.x, bind_node.y = min_x + half_width, max_y + height / 2
+    bind_node.width, bind_node.height, bind_node.half_width = width, height, half_width
+
+    bind_node.parent_nodes = [top_node]
+    bind_node.child_nodes = bottom_nodes
+    top_node.child_nodes = [bind_node]
+    for bn in bottom_nodes:
+        bn.parent_nodes = [bind_node]
+
+    abs_set = set(abstracted_nodes)
+
+    for nid in abs_set:
+        graph.nodes.pop(nid, None)
     graph.nodes[bind_node_id] = bind_node
 
-    top_node.child_nodes = [bind_node]
-    for node_id in bottom_node_ids:
-        bottom_node = graph.nodes.get(node_id)
-        bottom_node.parent_nodes = [bind_node]
+    current_max_edge_id = max((e.edge_id for e in graph.edges), default=0)
 
-    for abs in abstracted_nodes:
-        del graph.nodes[abs]
+    graph.edges = [e for e in graph.edges if e.source.node_id not in abs_set and e.target.node_id not in abs_set]
 
-    edge_ids = [e.edge_id for e in graph.edges]
-    bind_edge_id = 0
-    if edge_ids:
-        bind_edge_id = max(edge_ids) + 1
-    remaining_edges = []
-    for edge in graph.edges:
-        s, t = edge.source.node_id, edge.target.node_id
-        if s not in abstracted_nodes and t not in abstracted_nodes:
-            remaining_edges.append(edge)
-    binds = [bottom_node for bottom_node in bottom_nodes]
-    binds.append(top_node)
-    for bind in binds:
-        edge = models.Edge()
-        edge.edge_id = bind_edge_id
-        edge.label = bind_label
-        edge.source = bind_node
-        edge.target = bind
-        bind_edge_id = bind_edge_id + 1
-        remaining_edges.append(edge)
-    graph.edges = remaining_edges
+    for i, target in enumerate(target_nodes):
+        new_edge = models.Edge()
+        new_edge.edge_id = current_max_edge_id + 1 + i
+        new_edge.label = bind_label
+        new_edge.source = bind_node
+        new_edge.target = target
+        graph.edges.append(new_edge)
 
+    new_var_id = max((v.variable_node_id for v in graph.variables), default=0) + 1
     variable = models.Variable()
-    variable_ids = [v.variable_node_id for v in graph.variables]
-    bind_variable_id = 0
-    if variable_ids:
-        bind_variable_id = max(variable_ids) + 1
+    variable.variable_node_id = new_var_id
+    variable.abstracted_nodes = target_nodes[:]
+    graph.variables.append(variable)
 
-    variable.variable_node_id = bind_variable_id
-    for bind in binds:
-        variable.abstracted_nodes.append(bind)
-    graph.variables.append((variable))
-
-    graph.bind_count = graph.bind_count + 1
-
+    graph.bind_count += 1
     return graph
