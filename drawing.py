@@ -8,7 +8,7 @@ def draw(graph, node_label_draw = True, edgh_label_draw = True, node_drawing_sty
     node_style     = models.NodeStyle()
     variable_style = models.NodeStyle()
     node_style     = set_node_style(node_drawing_style)
-    variable_style = set_node_style(node_drawing_style, True)
+    variable_style = set_node_style(variable_drawing_style, True)
 
     root = graph.drawing_order[0]
     first_draw = True

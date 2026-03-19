@@ -1,6 +1,7 @@
 from gml_io import load, dump
 from geometry import compute_layout
 from drawing import draw
+import models
 
 def main():
     graph = load("test.gml")
