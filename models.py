@@ -53,7 +53,7 @@ class Graph:
 
 @dataclass
 class Binding:
-    display_label: str=""
+    display_label: str = ""
     nodes: dict[int, Node] = field(default_factory=dict, repr=False)
     edges: list[Edge] = field(default_factory=list, repr=False)
     variables: list[Variable]    = field(default_factory=list, repr=False)
