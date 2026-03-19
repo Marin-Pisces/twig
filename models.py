@@ -49,7 +49,7 @@ class Graph:
     bind_count: int = 0
 
     def __repr__(self):
-        return (f"RawGraph(nodes count={len(self.nodes)}, edges count={len(self.edges)}, variables count={len(self.variables)}, binds={self.bind_count})")
+        return (f"Graph(nodes count={len(self.nodes)}, edges count={len(self.edges)}, variables count={len(self.variables)}, binds={self.bind_count})")
 
 @dataclass
 class Binding:
