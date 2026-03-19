@@ -1,4 +1,4 @@
-from copy import deepcopy
+from collections import deque
 import models
 
 def compute_layout(graph, root_id = 0):
@@ -11,116 +11,97 @@ def compute_layout(graph, root_id = 0):
     calculate_positions(graph, most_level_nodes)
 
 def assign_levels(graph, root):
-    source_id_list = [e.source.node_id for e in graph.edges]
-    target_id_list = [e.target.node_id for e in graph.edges]
+    adj = {}
+    for edge in graph.edges:
+        s, t = edge.source.node_id, edge.target.node_id
+        adj.setdefault(s, set()).add(t)
+        adj.setdefault(t, set()).add(s)
 
-    parent_id_list = [root.node_id]
-    next_level = 1
+    queue = deque([root])
 
-    next_ids = set()
+    visited = {root.node_id}
 
-    while parent_id_list:
-        source_indices = []
-        target_indices = []
-        indices = []
+    while queue:
+        current_node = queue.popleft()
+        current_id = current_node.node_id
+
+        neighbor_ids = adj.get(current_id, set())
+
         child_ids = set()
+        for to_id in neighbor_ids:
+            if to_id not in visited:
+                visited.add(to_id)
+                child_ids.add(to_id)
 
-        current_id = parent_id_list.pop(0)
-        current_node = graph.nodes.get(current_id)
+                child_node = graph.nodes.get(to_id)
 
-        source_indices.extend([i for i, val in enumerate(source_id_list) if val == current_id])
-        target_indices.extend([i for i, val in enumerate(target_id_list) if val == current_id])
+                if child_node:
+                    if current_node not in child_node.parent_nodes:
+                        child_node.parent_nodes.append(current_node)
+                    if child_node not in current_node.child_nodes:
+                        current_node.child_nodes.append(child_node)
 
-        indices = list(sorted(set(source_indices + target_indices)))
-
-        for idx_list, to_ids in [
-            (source_indices, target_id_list),
-            (target_indices, source_id_list)
-        ]:
-            for idx in idx_list:
-                to_id = to_ids[idx]
-                if to_id != current_id:
-                    next_ids.add(to_id)
-                    node = graph.nodes.get(to_id)
-                    if node:
-                        child_ids.add(node.node_id)
-
-        for child_node_id in child_ids:
-            child_node = graph.nodes.get(child_node_id)
-            if current_id not in child_node.parent_nodes:
-                child_node.parent_nodes.extend(resolve_node([current_id], graph.nodes))
-        current_node.child_nodes.extend(resolve_node(child_ids, graph.nodes))
-        for i in reversed(indices):
-            source_id_list.pop(i)
-            target_id_list.pop(i)
-
-        if not parent_id_list:
-            parent_id_list.extend(next_ids)
-            next_level += 1
-            next_ids = set()
-
+                    queue.append(child_node)
 
 def generate_drawing_order(graph, root):
     top_down_order = []
     most_level_nodes = 0
-    target_nodes = [root]
-    child_nodes = []
-    current_level_nodes = [root.node_id]
+    current_level_nodes = [root]
 
-    top_down_order.append(deepcopy(current_level_nodes))
+    while current_level_nodes:
+        level_size = len(current_level_nodes)
+        if level_size > most_level_nodes:
+            most_level_nodes = level_size
 
-    while target_nodes:
-        target = target_nodes.pop(0)
-        if current_level_nodes:
-            current_level_nodes.pop()
-        target_nodes.extend([t for t in target.child_nodes])
-        child_nodes.extend([t for t in target.child_nodes])
-        if (not current_level_nodes) and child_nodes:
-            child_node_ids = [c.node_id for c in child_nodes]
-            top_down_order.append(deepcopy(child_node_ids))
-            current_level_nodes = deepcopy(child_node_ids)
-            child_nodes = []
-            if len(child_node_ids) > most_level_nodes:
-                most_level_nodes = len(child_node_ids)
+        current_level_ids = []
+        next_level_nodes = []
+
+        for target in current_level_nodes:
+            current_level_ids.append(target.node_id)
+            next_level_nodes.extend(target.child_nodes)
+
+        top_down_order.append(current_level_ids)
+        current_level_nodes = next_level_nodes
     return top_down_order, most_level_nodes
 
 def calculate_positions(graph, most_level_nodes):
     node_w = 100
     node_h = 100
 
-    root_node = True
-    w = most_level_nodes * node_w
-    h = 0
+    canvas_width = most_level_nodes * node_w
+
+    if not graph.drawing_order:
+        return
+
+    root_level = graph.drawing_order[0]
+
+    for i, root_id in enumerate(root_level):
+        root = graph.nodes.get(root_id)
+        root.width = canvas_width / len(root_level)
+        root.half_width = root.width / 2
+        root.x = (root.width * i) + root.half_width
+        root.y = 0
+        root.base_y = 0
+
     for level in graph.drawing_order:
         for node_id in level:
             node = graph.nodes.get(node_id)
-            if root_node:
-                root_node = False
-                node.x = w/(len(level) + 1)
-                node.y = h
-                node.width = w
-                node.height = h
-                node.half_width = w/(len(level) + 1)
-            if node.child_nodes:
-                parent_x = node.x
-                parent_w = node.width
-                parent_h = node.height
-                parent_hw = node.half_width
-                x = parent_x - parent_hw
-                ny = parent_h - node_h
-                vy = parent_h - (node_h/2)
-                w = parent_w/len(node.child_nodes)
-                h = parent_h - node_h
-                hw = w/2
-                for i, child in enumerate(node.child_nodes):
-                    child.x = x + hw + (w * i)
-                    if not child.is_variable:
-                        child.y = ny
-                    else:
-                        child.y = vy
-                    child.width  = w
-                    child.height = h
-                    child.half_width = hw
+            if not node or not node.child_nodes:
+                continue
+            num_children = len(node.child_nodes)
+            child_w = node.width / num_children
+            child_hw = child_w / 2
+
+            start_x = node.x - node.half_width
+            next_base_y = node.base_y - node_h
+
+            for i, child in enumerate(node.child_nodes):
+                child.width = child_w
+                child.half_width = child_hw
+                child.x = start_x + (child_w * i) + child_hw
+
+                child.base_y = next_base_y
+                child.y = next_base_y + (node_h / 2 if child.is_variable else 0)
 
 def resolve_node(target_ids, node_dict):
     node_list = []
