@@ -29,6 +29,8 @@ def parse_attributes(gml_file):
     pending_edges = []
     pending_variables = []
 
+    edge_counter = 0
+
     while True:
         line = gml_file.readline()
         if line:
@@ -51,7 +53,8 @@ def parse_attributes(gml_file):
                         case "node":
                             nodes.append(process_node(element_str))
                         case "edge":
-                            pending_edges.append(parse_edge(element_str))
+                            pending_edges.append(parse_edge(element_str, edge_counter))
+                            edge_counter += 1
                         case "hyper_edge":
                             hyper_edge_node, hyper_edge_edges, hyper_edge_variable = parse_hyper_edge(element_str)
                             nodes.append(hyper_edge_node)
@@ -135,7 +138,7 @@ def process_node(element_str):
             element_name = item
     return node
 
-def parse_edge(element_str):
+def parse_edge(element_str, edge_counter):
     pending_edge = models.PendingEdge()
     edge_element = {'id', 'label', 'source', 'target'}
     is_next_value = False
@@ -146,6 +149,7 @@ def parse_edge(element_str):
     for item in items:
         if is_next_value:
             is_next_value = False
+            pending_edge.edge_id = edge_counter
             match element_name:
                 case 'id':
                     pending_edge.edge_id = int(item)
