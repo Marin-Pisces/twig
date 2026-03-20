@@ -29,7 +29,7 @@ def draw(graph, node_label_draw = True, edgh_label_draw = True, node_drawing_sty
         else:
             plt.text(node.x, node.y, node.node_id)
 
-    for edge in graph.edges:
+    for edge in graph.edges.values():
         sx = edge.source.x
         sy = edge.source.y
         tx = edge.target.x - sx

@@ -55,8 +55,8 @@ class Graph:
 class Binding:
     display_label: str = ""
     nodes: dict[int, Node] = field(default_factory=dict, repr=False)
-    edges: list[Edge] = field(default_factory=list, repr=False)
-    variables: list[Variable]    = field(default_factory=list, repr=False)
+    edges: dict[int, Edge] = field(default_factory=list, repr=False)
+    variables: dict[int, Variable]    = field(default_factory=list, repr=False)
     abstracted_nodes: list[Node] = field(default_factory=list, repr=False)
     drawing_order: dict[list[int]] = field(default_factory=list)
     bind_count: int = 0

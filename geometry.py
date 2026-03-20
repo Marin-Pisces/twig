@@ -14,8 +14,8 @@ def compute_layout(graph, root_id = 0):
 def build_hyper_edges(graph, bind_nodes, bind_label = 'bind'):
     bind_graph = models.Graph()
     bind_graph.nodes = graph.nodes.copy()
-    bind_graph.edges = graph.edges[:]
-    bind_graph.variables = graph.variables[:]
+    bind_graph.edges = graph.edges.copy()
+    bind_graph.variables = graph.variables.copy()
     bind_graph.drawing_order = graph.drawing_order[:]
     bind_graph.bind_count = graph.bind_count
 
@@ -42,7 +42,7 @@ def sync_variable_counts(graph, bind_nodes, bind_label):
 
 def assign_levels(graph, root):
     adj = {}
-    for edge in graph.edges:
+    for edge in graph.edges.values():
         s, t = edge.source.node_id, edge.target.node_id
         adj.setdefault(s, set()).add(t)
         adj.setdefault(t, set()).add(s)
@@ -209,9 +209,13 @@ def bind_as_variable(graph, bind_nodes, bind_label, abstracted_nodes, top_node_i
         graph.nodes.pop(nid, None)
     graph.nodes[bind_node_id] = bind_node
 
-    current_max_edge_id = max((e.edge_id for e in graph.edges), default=0)
+    current_max_edge_id = max((e.edge_id for e in graph.edges.values()), default=0)
 
-    graph.edges = [e for e in graph.edges if e.source.node_id not in abs_set and e.target.node_id not in abs_set]
+    graph.edges = {
+        eid: e for eid, e in graph.edges.items()
+        if e.source.node_id not in abs_set and e.target.node_id not in abs_set
+    }
+
 
     for i, target in enumerate(target_nodes):
         new_edge = models.Edge()
@@ -219,13 +223,13 @@ def bind_as_variable(graph, bind_nodes, bind_label, abstracted_nodes, top_node_i
         new_edge.label = bind_label
         new_edge.source = bind_node
         new_edge.target = target
-        graph.edges.append(new_edge)
+        graph.edges[new_edge.edge_id] = new_edge
 
-    new_var_id = max((v.variable_node_id for v in graph.variables), default=0) + 1
+    new_var_id = max((v.variable_node_id for v in graph.variables.values()), default=0) + 1
     variable = models.Variable()
     variable.variable_node_id = new_var_id
     variable.abstracted_nodes = target_nodes[:]
-    graph.variables.append(variable)
+    graph.variables[new_var_id] = variable
 
     graph.bind_count += 1
     return graph
