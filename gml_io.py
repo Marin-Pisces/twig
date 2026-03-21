@@ -146,10 +146,10 @@ def parse_edge(element_str, edge_counter):
 
     pattern = r'("[^"]*"|\S+)'
     items = re.findall(pattern, element_str)
+    pending_edge.edge_id = edge_counter
     for item in items:
         if is_next_value:
             is_next_value = False
-            pending_edge.edge_id = edge_counter
             match element_name:
                 case 'id':
                     pending_edge.edge_id = int(item)
