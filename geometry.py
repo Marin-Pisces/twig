@@ -24,7 +24,7 @@ def build_hyper_edges(graph, bind_nodes, bind_label = 'bind'):
     bind_graph.drawing_order, most_level_nodes = generate_drawing_order(bind_graph, root)
     return bind_graph
 
-def substitute_variable(graph, bind_graph, bind_map, bind_label = ''):
+def substitute_variable(graph, bind_graph, bind_map):
     substitute_graph= graph.clone()
     bind_clone = bind_graph.clone()
 
@@ -33,7 +33,7 @@ def substitute_variable(graph, bind_graph, bind_map, bind_label = ''):
     for nid in around:
         if nid in bind_graph.nodes:
             substitute_graph.nodes[nid] = graph.nodes[nid].clone()
-    align_subgraph_geometry(substitute_graph, bind_clone, bind_map, bind_label, around)
+    align_subgraph_geometry(substitute_graph, bind_clone, bind_map, around)
     root_id = graph.drawing_order[0][0]
     root = bind_graph.nodes.get(root_id)
     substitute_graph.drawing_order, most_level_nodes = generate_drawing_order(substitute_graph, root)
@@ -45,7 +45,7 @@ def sync_variable_counts(graph, bind_nodes, bind_label):
     bind_graph = bind_as_variable(graph, bind_nodes, bind_label, abstracted_nodes, top_node, bottom_nodes)
     return bind_graph
 
-def align_subgraph_geometry(substitute, bind, bind_map, bind_label, around):
+def align_subgraph_geometry(substitute, bind, bind_map, around):
     node_offset = max(substitute.nodes.keys()) + 1
     edge_offset = max(substitute.edges.keys()) + 1
     set_new_ids(bind, node_offset, edge_offset)
@@ -55,7 +55,7 @@ def align_subgraph_geometry(substitute, bind, bind_map, bind_label, around):
     target_variable_node_id = substitute.nodes[bottom_nodes[0]].parent_nodes[0].node_id
     assign_levels(bind, bind.nodes[new_bind_map[top_node]])
     bind.drawing_order, most_level_nodes = generate_drawing_order(bind, bind.nodes[new_bind_map[top_node]])
-    expand_variable(substitute, bind, bind_label, new_bind_map, top_node, bottom_nodes, target_variable_node_id, around)
+    expand_variable(substitute, bind, new_bind_map, top_node, bottom_nodes, target_variable_node_id, around)
 
 def assign_levels(graph, root):
     adj = {}
@@ -295,7 +295,7 @@ def set_new_ids(bind, node_offset, edge_offset):
         count += 1
     bind.variables = new_variables
 
-def expand_variable(graph, bind, bind_label, bind_map, top_node_id, bottom_node_ids, target_variable_node_id, around):
+def expand_variable(graph, bind, bind_map, top_node_id, bottom_node_ids, target_variable_node_id, around):
     old_top_node = graph.nodes.get(top_node_id)
     old_bottom_nodes = [graph.nodes.get(nid) for nid in bottom_node_ids]
     target_variable_node = graph.nodes.get(target_variable_node_id)
