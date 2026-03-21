@@ -337,18 +337,18 @@ def expand_variable(graph, bind, bind_map, top_node_id, bottom_node_ids, target_
 
     drawing_order = bind.drawing_order[1:]
 
-    whidh = max_width
-    heidht = max_height / (len(drawing_order) + 1)
+    width = max_width
+    height = max_height / (len(drawing_order) + 1)
     for i, level in enumerate(drawing_order):
         for j, node_id in enumerate(level):
             if node_id not in bind_map.values():
                 node = bind.nodes.get(node_id)
-                w = whidh / len(level)
-                node.x = top_node.x + (w * (j + 1))
+                w = width / len(level)
+                node.x = (top_node.x) + (w * (j + 1))
                 node.width = w
                 node.half_width = w / 2
                 print(i)
-                node.y = top_node.y + (heidht * (i + 1)) + (heidht / 2 if node.is_variable else 0)
+                node.y = top_node.y + (height * (i + 1)) + (height / 2 if node.is_variable else 0)
                 width = w
                 new_nodes[node.node_id] = node
     for node in around_nodes:
