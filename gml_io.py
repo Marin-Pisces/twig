@@ -29,6 +29,8 @@ def parse_attributes(gml_file):
     pending_edges = []
     pending_variables = []
 
+    edge_counter = 0
+
     while True:
         line = gml_file.readline()
         if line:
@@ -51,7 +53,8 @@ def parse_attributes(gml_file):
                         case "node":
                             nodes.append(process_node(element_str))
                         case "edge":
-                            pending_edges.append(parse_edge(element_str))
+                            pending_edges.append(parse_edge(element_str, edge_counter))
+                            edge_counter += 1
                         case "hyper_edge":
                             hyper_edge_node, hyper_edge_edges, hyper_edge_variable = parse_hyper_edge(element_str)
                             nodes.append(hyper_edge_node)
@@ -82,7 +85,7 @@ def serialize_graph(dump_file, graph):
         else:
             variable_node_ids.append(node.node_id)
     dump_file.write('\n')
-    for edge in graph.edges:
+    for edge in graph.edges.values():
         src_id = edge.source.node_id
         tgt_id = edge.target.node_id
 
@@ -97,7 +100,7 @@ def serialize_graph(dump_file, graph):
         else:
             variable_edge_ids.setdefault(int(tgt_id), {})[int(src_id)] = int(edge.edge_id)
     dump_file.write('\n')
-    for variable in graph.variables:
+    for variable in graph.variables.values():
         node = graph.nodes.get(variable.variable_node_id)
         variable_datas = variable_edge_ids.get(variable.variable_node_id)
         edge_id_text = ''
@@ -135,7 +138,7 @@ def process_node(element_str):
             element_name = item
     return node
 
-def parse_edge(element_str):
+def parse_edge(element_str, edge_counter):
     pending_edge = models.PendingEdge()
     edge_element = {'id', 'label', 'source', 'target'}
     is_next_value = False
@@ -143,6 +146,7 @@ def parse_edge(element_str):
 
     pattern = r'("[^"]*"|\S+)'
     items = re.findall(pattern, element_str)
+    pending_edge.edge_id = edge_counter
     for item in items:
         if is_next_value:
             is_next_value = False
@@ -210,25 +214,25 @@ def parse_hyper_edge(element_str):
     return node, pending_edges, pending_variable
 
 def process_edge(node_dict, pending_edges):
-    edges = []
+    edges = {}
     for pending in pending_edges:
         edge = models.Edge()
         edge.edge_id = pending.edge_id
         edge.label   = pending.label
-        edges.append(edge)
-    for pending, edge in zip(pending_edges, edges):
+        edges[edge.edge_id] = edge
+    for pending,  edge in zip(pending_edges, edges.values()):
         edge.source  = node_dict.get(pending.source)
         edge.target  = node_dict.get(pending.target)
     return edges
 
 def process_variable(node_dict, pending_variables):
-    variables = []
+    variables = {}
     for pending in pending_variables:
         variable = models.Variable()
         nodes = []
         variable.variable_node_id = pending.variable_node_id
-        variables.append(variable)
-    for pending, variable in zip(pending_variables, variables):
+        variables[variable.variable_node_id] = variable
+    for pending, variable in zip(pending_variables, variables.values()):
         vas = []
         for pa, va in zip(pending.abstracted_nodes, variable.abstracted_nodes):
             vas.append(node_dict.get(int(pa)))
