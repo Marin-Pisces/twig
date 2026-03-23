@@ -428,9 +428,10 @@ def expand_variable(graph, bind, bind_map, top_node_id, bottom_node_ids, target_
 
     for i, level in enumerate(levels):
         # Width per node in this hierarchy
-        w = area_width / len(level)
-        num = 0
-        for j, node_id in enumerate(level):
+        nodes_to_draw = [nid for nid in level if nid not in bind_map.values()]
+        nodes_to_draw = [n for n in nodes_to_draw if n is not None]
+        w = area_width / len(nodes_to_draw)
+        for j, node_id in enumerate(nodes_to_draw):
             if node_id not in bind_map.values():
                 node = bind.nodes.get(node_id)
                 if not node:

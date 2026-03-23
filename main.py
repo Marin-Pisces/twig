@@ -8,8 +8,8 @@ def main():
     graph2 = load("stress_test.gml")
     compute_layout(graph, 1)
     bind = build_hyper_edges(graph, [4,11,12])
-    s = substitute_variable(bind, graph2, {4:1, 11:2, 12:3})
-    draw(s)
+    substitute = substitute_variable(bind, graph2, {4:1, 11:4, 12:3})
+    draw(substitute)
 
 if __name__ == "__main__":
     main()
