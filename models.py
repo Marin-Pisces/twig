@@ -13,6 +13,19 @@ class Node:
     half_width: float = 0.0
     is_variable: bool = False
 
+    def clone(self):
+        cloned = self.__class__()
+        cloned.node_id = self.node_id
+        cloned.label = self.label
+        cloned.x, cloned.y = self.x, self.y
+        cloned.width, cloned.height = self.width, self.height
+        cloned.half_width = self.half_width
+        cloned.is_variable = self.is_variable
+        cloned.parent_nodes = self.parent_nodes[:]
+        cloned.child_nodes = self.child_nodes[:]
+
+        return cloned
+
     def __repr__(self):
         parent_ids = [p.node_id for p in self.parent_nodes]
         child_ids  = [c.node_id for c in self.child_nodes]
@@ -48,21 +61,40 @@ class Graph:
     drawing_order: dict[list[int]] = field(default_factory=list)
     bind_count: int = 0
 
+    def clone(self):
+        new_graph = self.__class__()
+        new_graph.nodes = self.nodes.copy()
+        new_graph.edges = self.edges.copy()
+        new_graph.variables = self.variables.copy()
+        new_graph.drawing_order = self.drawing_order[:]
+        new_graph.bind_count = self.bind_count
+
+        return new_graph
+
     def __repr__(self):
-        return (f"RawGraph(nodes count={len(self.nodes)}, edges count={len(self.edges)}, variables count={len(self.variables)}, binds={self.bind_count})")
+        return (f"Graph(nodes count={len(self.nodes)}, edges count={len(self.edges)}, variables count={len(self.variables)}, binds={self.bind_count})")
 
 @dataclass
 class Binding:
-    display_label: str=""
+    display_label: str = ""
     nodes: dict[int, Node] = field(default_factory=dict, repr=False)
-    edges: list[Edge] = field(default_factory=list, repr=False)
-    variables: list[Variable]    = field(default_factory=list, repr=False)
-    abstracted_nodes: list[Node] = field(default_factory=list, repr=False)
+    edges: dict[int, Edge] = field(default_factory=list, repr=False)
+    variables: dict[int, Variable]    = field(default_factory=list, repr=False)
     drawing_order: dict[list[int]] = field(default_factory=list)
     bind_count: int = 0
 
+    def clone(self):
+        new_binding = self.__class__()
+        new_binding.nodes = self.nodes.copy()
+        new_binding.edges = self.edges.copy()
+        new_binding.variables = self.variables.copy()
+        new_binding.drawing_order = self.drawing_order[:]
+        new_binding.bind_count = self.bind_count
+
+        return new_graph
+
     def __repr__(self):
-        return (f"Binding(nodes count={len(self.nodes)}, edges count={len(self.edges)}, variables count={len(self.variables)}, abstracteds count={len(self.abstracted_nodes)}, binds={self.bind_count})")
+        return (f"Binding(nodes count={len(self.nodes)}, edges count={len(self.edges)}, variables count={len(self.variables)}, binds={self.bind_count})")
 
 @dataclass
 class PendingEdge:

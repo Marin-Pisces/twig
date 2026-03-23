@@ -24,10 +24,15 @@ from drawing import draw
 
 # グラフデータの読み込み
 graph = load("test.gml")
+graph2 = load("test2.gml")
 # レイアウト計算
 compute_layout(graph)
+# 変数化
+bind = build_hyper_edges(graph, [1,2,3])
+# 代入
+substitute = substitute_variable(bind, graph2, {1:1, 2:2, 3:3})
 # 描画
-draw(graph)
+draw(substitute)
 # GML出力
 dump("dump.gml", graph)
 

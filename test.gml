@@ -14,6 +14,8 @@ graph [
   node [ id 8 label "Leaf_C1" ]
   node [ id 9 label "Leaf_C2" ]
   node [ id 10 label "Leaf_C3" ]
+  node [ id 11 label "Leaf_C2" ]
+  node [ id 12 label "Leaf_C3" ]
 
   # --- Edge に ID(11-19) と Label を追加 ---
   edge [ id 11 source 1 target 2 label "R-A" ]
@@ -27,11 +29,7 @@ graph [
 
   edge [ id 17 source 4 target 8 label "C-L1" ]
   edge [ id 18 source 4 target 9 label "C-L2" ]
-  hyper_edge
-  [
-    node_id 11
-    edge_id [20,21]
-    label "V"
-    target [3,10]
-  ]
+  edge [ id 19 source 4 target 10 label "C-L2" ]
+  edge [ id 20 source 10 target 11 label "C-L2" ]
+  edge [ id 21 source 10 target 12 label "C-L2" ]
 ]

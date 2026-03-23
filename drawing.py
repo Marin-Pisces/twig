@@ -8,7 +8,7 @@ def draw(graph, node_label_draw = True, edgh_label_draw = True, node_drawing_sty
     node_style     = models.NodeStyle()
     variable_style = models.NodeStyle()
     node_style     = set_node_style(node_drawing_style)
-    variable_style = set_node_style(node_drawing_style, True)
+    variable_style = set_node_style(variable_drawing_style, True)
 
     root = graph.drawing_order[0]
     first_draw = True
@@ -21,15 +21,15 @@ def draw(graph, node_label_draw = True, edgh_label_draw = True, node_drawing_sty
             first_draw = False
 
         if not node.is_variable:
-            plt.scatter(node.x, node.y, s=node_style.size, marker=node_style.marker, c=node_style.color, edgecolor=node_style.edgecolor)
+            plt.scatter(node.x, node.y, s=node_style.size, marker=node_style.marker, c=node_style.color, edgecolor=node_style.edgecolor, zorder=2)
         else:
-            plt.scatter(node.x, node.y, s=variable_style.size, marker=variable_style.marker, c=variable_style.color, edgecolor=variable_style.edgecolor)
+            plt.scatter(node.x, node.y, s=variable_style.size, marker=variable_style.marker, c=variable_style.color, edgecolor=variable_style.edgecolor, zorder=2)
         if node_label_draw:
             plt.text(node.x, node.y, node.label)
         else:
             plt.text(node.x, node.y, node.node_id)
 
-    for edge in graph.edges:
+    for edge in graph.edges.values():
         sx = edge.source.x
         sy = edge.source.y
         tx = edge.target.x - sx
@@ -48,24 +48,14 @@ def draw(graph, node_label_draw = True, edgh_label_draw = True, node_drawing_sty
 
 def set_node_style(input_style, is_variable = False):
     style = models.NodeStyle()
-    if input_style:
-        style.size = 100 if input_style.size == 0 else input_style.size
-        if not is_variable:
-            style.color = '#FF0000' if input_style.color == '' else input_style.color
-            style.marker = 'o' if input_style.marker == '' else input_style.marker
-        else:
-            style.color = '#0000FF' if input_style.color == '' else input_style.color
-            style.marker = '^' if input_style.marker == '' else input_style.marker
-        style.alpha = 1.0 if input_style.alpha == 0.0 else input_style.alpha
-        style.edgecolor = '#000000' if input_style.edgecolor== '' else input_style.edgecolor
+    s = input_style if input_style else models.NodeStyle()
+    style.size = 100 if s.size == 0 else s.size
+    style.alpha = s.alpha if s.alpha != 0.0 else 1.0
+    style.edgecolor = s.edgecolor if s.edgecolor != '' else '#000000'
+    if is_variable:
+        style.color = s.color if s.color != '' else '#0000FF'
+        style.marker = s.marker if s.marker != '' else '^'
     else:
-        style.size = 100
-        if not is_variable:
-            style.color = '#FF0000'
-            style.marker = 'o'
-        else:
-            style.color = '#0000FF'
-            style.marker = '^'
-        style.alpha = 1.0
-        style.edgecolor = '#000000'
+        style.color = s.color if s.color != '' else '#FF0000'
+        style.marker = s.marker if s.marker != '' else 'o'
     return style
