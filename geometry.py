@@ -57,7 +57,7 @@ def substitute_variable(graph, bind_graph, bind_map):
             substitute_graph.nodes[nid] = graph.nodes[nid].clone()
     align_subgraph_geometry(substitute_graph, bind_clone, bind_map, around)
 
-    """# Check if `drawing_order` exists and has content
+    # Check if `drawing_order` exists and has content
     if hasattr(graph, 'drawing_order') and graph.drawing_order and graph.drawing_order[0]:
         root_id = graph.drawing_order[0][0]
         root = substitute_graph.nodes.get(root_id)
@@ -67,7 +67,7 @@ def substitute_variable(graph, bind_graph, bind_map):
         root = next(iter(substitute_graph.nodes.values()), None)
     if root:
         order, most_nodes = generate_drawing_order(substitute_graph, root)
-        substitute_graph.drawing_order = order"""
+        substitute_graph.drawing_order = order
     return substitute_graph
 
 def sync_variable_counts(graph, bind_nodes, bind_label):
@@ -94,7 +94,6 @@ def align_subgraph_geometry(main_graph, sub_graph, bind_map, around):
 
     new_top_id = new_bind_map[top_id]
     compute_layout(sub_graph, new_top_id)
-    print(new_bind_map)
     expand_variable(
         main_graph, sub_graph, new_bind_map,
         top_id,
@@ -293,7 +292,6 @@ def bind_as_variable(graph, bind_nodes, bind_label, abstracted_nodes, top_node_i
         height = 100
 
         for bn in bottom_nodes:
-            print(bn)
             dy = (top_node.y - height) - bn.y
             shift_subtree(bn, dy)
 
@@ -380,97 +378,118 @@ def get_around_nodes(graph, mapping):
     return around_ids
 
 def expand_variable(graph, bind, bind_map, top_node_id, bottom_node_ids, target_variable_node_id, around):
+    # Acquisition of each performance
     old_top_node = graph.nodes.get(top_node_id)
-    old_bottom_nodes = [graph.nodes.get(nid) for nid in bottom_node_ids]
+    old_bottom_nodes = [graph.nodes.get(nid) for nid in bottom_node_ids if nid in graph.nodes]
     target_variable_node = graph.nodes.get(target_variable_node_id)
     around_nodes = [graph.nodes.get(nid) for nid in around]
     top_node = bind.nodes.get(bind_map[top_node_id])
     bottom_nodes = [bind.nodes.get(bind_map[nid]) for nid in bottom_node_ids]
-    old_target = [old_top_node] + [target_variable_node] + old_bottom_nodes
-    target_nodes = [top_node] + bottom_nodes
+    # List of IDs to be deleted
     target_node_id = [top_node_id] + bottom_node_ids
+    old_target_list = [old_top_node, target_variable_node] + [graph.nodes.get(nid) for nid in bottom_node_ids]
+    # Keep only the nodes that will survive
+    new_nodes = {nid: node for nid, node in graph.nodes.items() if node not in old_target_list}
 
-    new_nodes = {node.node_id: node for node in graph.nodes.values() if node not in old_target}
-    new_edges = {}
-    new_variables = {}
-
-    for (old, new) in bind_map.items():
-        old_node = graph.nodes.pop(old)
-        new_node = bind.nodes.pop(new)
-        if old == top_node_id:
+    # Swapping Top/Bottom nodes
+    for old_id, new_id in bind_map.items():
+        old_node = graph.nodes.pop(old_id, None)
+        new_node = bind.nodes.pop(new_id, None)
+        if not old_node or not new_node:
+            continue
+        if old_id == top_node_id:
             new_node.parent_nodes = old_node.parent_nodes
-            new_list = [node for node in old_node.child_nodes if node.node_id != target_variable_node_id]
-            new_node.child_nodes.extend(new_list)
-        else:
-            new_node.child_nodes = new_node.child_nodes
+            # Inherit existing children other than the variable node
+            others = [c for c in old_node.child_nodes if c.node_id != target_variable_node_id]
+            new_node.child_nodes.extend(others)
+
+        # Copy coordinates and size
         new_node.x, new_node.y = old_node.x, old_node.y
         new_node.width, new_node.height = old_node.width, old_node.height
         new_node.half_width = old_node.half_width
         new_nodes[new_node.node_id] = new_node
+    # Calculation of equal distribution of internal nodes
+    # Area calculation
+    b_x_coords = [n.x for n in old_bottom_nodes if n is not None]
+    b_hw_coords = [n.half_width for n in old_bottom_nodes if n is not None]
 
-    b_hw_coords = [n.half_width for n in bottom_nodes]
-    b_x_coords = [n.x for n in bottom_nodes]
-    half = min(b_hw_coords)
-    min_x, max_x = min(b_x_coords) - half, max(b_x_coords) + half
-    max_width = max_x - min_x
-    half_max_width = max_width / 2
+    if not b_x_coords:
+        print(f"Error: old_bottom_nodes is empty. IDs were: {bottom_node_ids}")
+        return
 
-    min_y = bottom_nodes[0].y
-    max_y = top_node.y
-    max_height = min_y - max_y
+    min_x = min(b_x_coords)
+    max_x = max(b_x_coords)
+    area_width = max_x - min_x
+    # Calculating height
+    area_height = bottom_nodes[0].y - top_node.y
+    levels = bind.drawing_order[1:]
+    num_levels = len(levels)
+    step_y = area_height / (num_levels + 1)
 
-    drawing_order = bind.drawing_order[1:]
-
-    width = max_width
-    height = max_height / (len(drawing_order) + 1)
-    for i, level in enumerate(drawing_order):
+    for i, level in enumerate(levels):
+        # Width per node in this hierarchy
+        w = area_width / len(level)
+        num = 0
         for j, node_id in enumerate(level):
             if node_id not in bind_map.values():
                 node = bind.nodes.get(node_id)
-                w = width / len(level)
-                node.x = (top_node.x) + (w * (j + 1))
+                if not node:
+                    continue
+                # X coordinate: Equally distributed starting from min_x
+                # $$ x = min\_x + (w \times j) + (w / 2) $$
+                node.x = min_x + (w * j) + (w / 2)
                 node.width = w
                 node.half_width = w / 2
-                print(i)
-                node.y = top_node.y + (height * (i + 1)) + (height / 2 if node.is_variable else 0)
-                width = w
+
+                # Y coordinate: divided equally by hierarchy
+                node.y = top_node.y + (step_y * (i + 1)) + (step_y / 2 if node.is_variable else 0)
                 new_nodes[node.node_id] = node
+    # Rewriting the pointers of surrounding nodes
     for node in around_nodes:
-        if node in new_nodes.values():
-            np = []
-            nc = []
-            for p in node.parent_nodes:
-                if p.node_id in target_node_id:
-                    p = new_nodes[bind_map[p.node_id]]
-                np.append(p)
-            node.parent_nodes = np
-            for c in node.child_nodes:
-                if c.node_id in target_node_id:
-                    c = new_nodes[bind_map[c.node_id]]
-                nc.append(c)
-            node.child_nodes = nc
-            new_nodes[node.node_id] = node
+        if not node or node.node_id == target_variable_node_id or node.node_id in target_node_id:
+            continue
+        # Replace the "old ID" with the "new ID" in the parent list and child list
+        node.parent_nodes = [new_nodes[bind_map[p.node_id]] if p.node_id in target_node_id else p for p in node.parent_nodes]
+        node.child_nodes = [new_nodes[bind_map[c.node_id]] if c.node_id in target_node_id else c for c in node.child_nodes]
+        new_nodes[node.node_id] = node
+
+    new_edges = {}
+    new_variables = {}
     for edge in graph.edges.values():
-        if edge.source.node_id != target_variable_node_id and edge.target.node_id != target_variable_node_id:
-            if edge.source.node_id in target_node_id:
-                edge.source = new_nodes[bind_map[edge.source.node_id]]
-            if edge.target.node_id in target_node_id:
-                edge.target = new_nodes[bind_map[edge.target.node_id]]
+        # Reconnect the line from the parent to the "variable node" to the "new top" inside
+        if edge.target.node_id == target_variable_node_id:
+            new_top_id = bind_map.get(top_node_id)
+            if new_top_id:
+                edge.target = new_nodes[new_top_id]
             new_edges[edge.edge_id] = edge
+            continue
+        # Reconnect the lines from the "variable node" to its child to the "new Bottom" inside
+        if edge.source.node_id == target_variable_node_id:
+            new_bottom_id = bind_map.get(edge.target.node_id)
+            if new_bottom_id:
+                edge.source = new_nodes[new_bottom_id]
+            new_edges[edge.edge_id] = edge
+            continue
+        # Update the pointer of a line unrelated to the variable
+        if edge.source.node_id in target_node_id:
+            edge.source = new_nodes[bind_map[edge.source.node_id]]
+        if edge.target.node_id in target_node_id:
+            edge.target = new_nodes[bind_map[edge.target.node_id]]
+        new_edges[edge.edge_id] = edge
     new_edges.update(bind.edges)
-    is_bind = False
-    for variable in graph.variables.values():
-        for va in variable.abstracted_nodes:
-            if va.node_id in target_node_id:
-                is_bind = True
-            else:
-                is_bind = False
-        if not is_bind:
-            new_variables[variable.variable_node_id] = variable
+
+    # Variable processing: Safe determination
+    for v_id, variable in graph.variables.items():
+        # Check if at least one target_node_id is included in abstracted_nodes
+        contains_target = any(va.node_id in target_node_id for va in variable.abstracted_nodes)
+
+        if not contains_target:
+            new_variables[v_id] = variable
 
     graph.nodes = new_nodes
     graph.edges = new_edges
     graph.variables = new_variables
+
     graph.bind_count -= 1
 
 def shift_subtree(node, dy):
@@ -483,12 +502,7 @@ def prepare_subgraph_ids(main_graph, sub_graph, bind_map):
     node_offset = max(main_graph.nodes.keys() or [0]) + 1
     edge_offset = max(main_graph.edges.keys() or [0]) + 1
     set_new_ids(sub_graph, node_offset, edge_offset)
-    print(bind_map)
-    new_bind_map = {iid: i + node_offset for iid, i in bind_map.items()}
-    n = {oid: oid + node_offset for oid in bind_map.keys()}
-    print(n)
-    print(new_bind_map)
-    return {oid: oid + node_offset for oid in bind_map.keys()}
+    return {oid: data + node_offset for oid, data in bind_map.items()}
 
 def set_new_ids(bind, node_offset, edge_offset):
     # Node ID update
